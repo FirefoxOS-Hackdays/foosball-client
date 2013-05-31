@@ -59,7 +59,7 @@ function Game(params) {
   this.pause = false;
 
   // Toggle debug view of underlying physics engine objects
-  this.displayDebugInfo = true;
+  this.displayDebugInfo = false;
 
   // ground layers
   this.layers = [];
@@ -86,7 +86,7 @@ function Game(params) {
   this.PLAYER_WIDTH = 50 / SCALE;
   this.PLAYER_HEIGHT = 100 / SCALE;
   this.BALL_RADIUS = this.PLAYER_HEIGHT/8;
-  this.GOAL_SIZE = this.BALL_RADIUS * 6;
+  this.GOAL_SIZE = this.BALL_RADIUS * 10;
 }
 
 // --------------------------------------------------------------------------------------------
@@ -155,36 +155,51 @@ Game.prototype.init = function() {
   // {x, y, w, h, isstatic, angle, ref}
   //create margins
 
-  var bottom = new RectangleEntity({ x: 0, y: this.map_height,
-                                     width: this.map_width, height: 1 / SCALE,
-                                     isstatic:true });
-  var top = new RectangleEntity({ x: 0, y: 0,
-                                  width: this.map_width, height: 1 / SCALE,
-                                  isstatic: true});
+  var bottom = new RectangleEntity({
+    x: this.map_width / 2,
+    y: this.map_height,
+    width: this.map_width,
+    height: 50 / SCALE,
+    isstatic:true });
+
+  var top = new RectangleEntity({
+    x: this.map_width / 2,
+    y: 0,
+    width: this.map_width,
+    height: 50 / SCALE,
+    isstatic: true});
+
+  var verticalSegmentSize = this.map_height / 2 - this.GOAL_SIZE / 2;
   var leftA = new RectangleEntity({
-    x: 0, y: 0,
-    width: 1 / SCALE, height: this.map_height / 2 - this.GOAL_SIZE / 2,
+    x: 0,
+    y: verticalSegmentSize / 2,
+    width: 50 / SCALE,
+    height: verticalSegmentSize,
     isstatic: true});
 
   var leftB = new RectangleEntity({
+    id: 50,
     x: 0,
-    y: this.map_height / 2 + this.BALL_RADIUS * 4,
-    width: 1 / SCALE,
-    height: this.map_height / 2 - this.GOAL_SIZE / 2,
+    y: this.map_height - verticalSegmentSize / 2,
+    width: 50 / SCALE,
+    height: verticalSegmentSize,
+    angle: 0,
+    doesntcollide: false,
+    bodyless: false,
     isstatic: true});
 
   var rightA = new RectangleEntity({
     x: this.map_width,
-    y: 0,
-    width: 1 / SCALE,
-    height: this.map_height / 2 - this.GOAL_SIZE / 2,
+    y: verticalSegmentSize / 2,
+    width: 50 / SCALE,
+    height: verticalSegmentSize,
     isstatic: true});
 
   var rightB = new RectangleEntity({
     x: this.map_width,
-    y: this.map_height / 2 + this.BALL_RADIUS * 4,
-    width: 1 / SCALE,
-    height: this.map_height / 2 - this.GOAL_SIZE / 2,
+    y: this.map_height - verticalSegmentSize / 2,
+    width: 50 / SCALE,
+    height: verticalSegmentSize,
     isstatic: true});
 
   bottom.createbody(this.myworld);
@@ -665,11 +680,7 @@ Game.prototype.render = function() {
   this.maximum_world_x = this.minimum_world_x + this.canvas.width / SCALE;
 
 
-  // When debugging, we don't draw tiles so clear the background
-  //
-  if( this.displayDebugInfo ) {
-     this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
-  }
+  this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
 
   this.ctx.save();
 
@@ -687,6 +698,11 @@ Game.prototype.render = function() {
   // draw background tiles ("ground" layer)
   //
   if( !this.displayDebugInfo ) {
+
+    this.player1.draw({ ctx : this.ctx });
+    this.player2.draw({ ctx : this.ctx });
+    this.ball.draw({ ctx : this.ctx });
+
     for(var layerid in this.layers) {
       var layer = this.layers[layerid];
       var initialrow = Math.max( 0,

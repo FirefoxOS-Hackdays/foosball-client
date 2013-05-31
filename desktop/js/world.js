@@ -127,20 +127,28 @@ World.prototype.newRectangleBody = function (params) {
 			bodyDef.linearDamping = params.weight;
 		}
 
-		if( params.isstatic ) bodyDef.type = b2Body.b2_staticBody;
-		else bodyDef.type = b2Body.b2_dynamicBody;
+		fixDef.shape = new b2PolygonShape();
+		if( params.isstatic ) {
+			bodyDef.type = b2Body.b2_staticBody;
+			var center = new b2Vec2(params.height/2, params.width/2);
+			fixDef.shape.SetAsBox(params.width/2, params.height/2);
+			bodyDef.position.x = params.x;
+			bodyDef.position.y = params.y;
+		}
+		else {
+			bodyDef.type = b2Body.b2_dynamicBody;
+			var center = new b2Vec2(params.height/2, params.width/2);
+			fixDef.shape.SetAsBox(params.width/2, params.height/2);
+			bodyDef.position.x = params.x+params.width/2;
+			bodyDef.position.y = params.y+params.height/2;
+		}
 
-		fixDef.shape = new b2PolygonShape;
-		var center = new b2Vec2(params.height/2, params.width/2);
-		fixDef.shape.SetAsBox(params.width/2, params.height/2, {x:null, y:null}, Math.PI);
 
 		// prevent this entity from colliding (but still affects forces)
 		if( params.doesntcollide ) {
 			fixDef.isSensor = true;
 		}
 
-		bodyDef.position.x = params.x+params.width/2;
-		bodyDef.position.y = params.y+params.height/2;
 		bodyDef.userData = params.ref;
 		var body = this.world.CreateBody(bodyDef);
 		body.CreateFixture(fixDef);

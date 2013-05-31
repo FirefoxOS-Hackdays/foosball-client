@@ -26,6 +26,19 @@ CircleEntity.prototype.draw = function(params) {
 
   // not actually drawing anything
   Entity.prototype.draw.call(this, params);
+
+  params.ctx.save();
+  // params.ctx.fillStyle = 'red';
+  params.ctx.strokeStyle = 'red';
+  params.ctx.beginPath();
+  // var pos = world.getposition(this.body);
+  params.ctx.arc(this.x * SCALE, this.y * SCALE, this.radius * SCALE,
+    0 /* starting angle */,
+    Math.PI * 2 /* a circle */, true /* antiClockwise */);
+  params.ctx.closePath();
+  params.ctx.stroke();
+  params.ctx.restore();
+
 }
 
 // create a corresponding Box2D body and fixture for this entity
