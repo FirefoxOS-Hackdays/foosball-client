@@ -507,8 +507,16 @@ World.prototype.getposition = function(body) {
 	} else if( this.engine == CHIPMUNK ) {
 		return body.p;
 	}
-}
+};
 
+// body, { x: xxx, y : yyy }
+World.prototype.setposition = function(body, point) {
+	if( this.engine == BOX2D ) {
+		body.SetPosition(new b2Vec2(point.x, point.y));
+	} else if( this.engine == CHIPMUNK ) {
+		body.setPos(cp.v(point.x, point.y));
+	}
+}
 
 // body --> angle
 World.prototype.getangle = function(body) {

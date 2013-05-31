@@ -160,16 +160,32 @@ Game.prototype.init = function() {
   var top = new RectangleEntity({ x: 0, y: 0,
                                   width: this.map_width, height: 1 / SCALE,
                                   isstatic: true});
-  var left = new RectangleEntity({ x: 0, y: 0,
-                                   width: 1 / SCALE, height: this.map_height,
-                                   isstatic: true});
-  var right = new RectangleEntity({ x: this.map_width, y: 0,
-                                    width: 1 / SCALE, height: this.map_height,
-                                    isstatic: true});
+  var leftA = new RectangleEntity({
+    x: 0, y: 0,
+    width: 1 / SCALE, height: this.map_height / 2 - this.BALL_RADIUS * 6,
+    isstatic: true});
+
+  var leftB = new RectangleEntity({
+    x: 0, y: this.map_height / 2 + this.BALL_RADIUS * 4,
+    width: 1 / SCALE, height: this.map_height / 2 - this.BALL_RADIUS * 6,
+    isstatic: true});
+
+  var rightA = new RectangleEntity({
+    x: this.map_width, y: 0,
+    width: 1 / SCALE, height: this.map_height / 2 - this.BALL_RADIUS * 6,
+    isstatic: true});
+
+  var rightB = new RectangleEntity({
+    x: this.map_width, y: this.map_height / 2 + this.BALL_RADIUS * 4,
+    width: 1 / SCALE, height: this.map_height / 2 - this.BALL_RADIUS * 6,
+    isstatic: true});
+
   bottom.createbody(this.myworld);
   top.createbody(this.myworld);
-  left.createbody(this.myworld);
-  right.createbody(this.myworld);
+  leftA.createbody(this.myworld);
+  leftB.createbody(this.myworld);
+  rightA.createbody(this.myworld);
+  rightB.createbody(this.myworld);
 
   var disableVerticalMovement = function (body) {
     var jointDef = new Box2D.Dynamics.Joints.b2PrismaticJointDef(
@@ -177,7 +193,7 @@ Game.prototype.init = function() {
     jointDef.collideConnected = true;
     // lock to X-axis, relative to top wall of game
     jointDef.Initialize(body,
-      left.body, body.GetWorldCenter(), new b2Vec2(0, 1));
+      top.body, body.GetWorldCenter(), new b2Vec2(0, 1));
     _this.myworld.world.CreateJoint(jointDef);
   };
 
@@ -201,6 +217,8 @@ Game.prototype.init = function() {
   // render callback
   setTimeout(this.boundupdate, this.updateDelay);
 
+  // start by throwing new ball
+  this.newBall();
 };
 
 // ----------------------------------------------------------------------------------------------
@@ -320,6 +338,7 @@ Game.prototype.registerListeners = function() {
     var pressedBall = false;
     var pressedPlayer1 = false;
     var pressedPlayer2 = false;
+    var pressedSpace = false;
     switch(e.keyCode) {
       case 37: /* left */
         _this.ballDirection |= MOVE_LEFT;
@@ -353,6 +372,9 @@ Game.prototype.registerListeners = function() {
         _this.player2Direction = 1;
         pressedPlayer2 = true;
         break;
+      case 32: // space
+        pressedSpace = true;
+        break;
     }
     if (pressedBall && !_this.pressStartedBall) {
         _this.pressStartedBall = new Date().getTime();
@@ -363,7 +385,10 @@ Game.prototype.registerListeners = function() {
     if (pressedPlayer2 && !_this.pressStartedPlayer2) {
         _this.pressStartedPlayer2 = new Date().getTime();
     }
-    return !pressedBall && !pressedPlayer1 && !pressedPlayer2;
+    if (pressedSpace) {
+      _this.newBall();
+    }
+    return !pressedBall && !pressedPlayer1 && !pressedPlayer2 && !pressedSpace;
   });
 
   // direction = 1, -1
@@ -381,6 +406,7 @@ Game.prototype.registerListeners = function() {
     var pressedBall = false;
     var pressedPlayer1 = false;
     var pressedPlayer2 = false;
+    var pressedSpace = false;
     switch(e.keyCode) {
       case 37: /* left */
       case 38: /* up */
@@ -396,6 +422,10 @@ Game.prototype.registerListeners = function() {
       case 83: // s
       case 88: // x
         pressedPlayer2 = true;
+        break;
+      case 32: // space
+        pressedSpace = true;
+        console.log('space');
         break;
     }
     if (pressedBall) {
@@ -420,13 +450,25 @@ Game.prototype.registerListeners = function() {
       _this.pressStartedPlayer1 = 0;
     }
     if (pressedPlayer2) {
-      movePlayer(_this.player2.body, _this.player1Direction,
+      movePlayer(_this.player2.body, _this.player2Direction,
                  new Date().getTime() - _this.pressStartedPlayer2);
       _this.pressStartedPlayer2 = 0;
     }
-
-    return !pressedBall && !pressedPlayer1 && !pressedPlayer2;
+ 
+    return !pressedBall && !pressedPlayer1 && !pressedPlayer2 && !pressedSpace;
   });
+};
+
+// ------------------------
+// Throw new ball
+// ------------------------
+Game.prototype.newBall = function () {
+  var body = this.ball.body;
+  var initSpeed = 1000;
+  this.myworld.setposition(body, {x: this.map_width/2, y: this.map_height/2});
+  this.myworld.setvelocity(body, {x: Math.random()*initSpeed - initSpeed/2,
+                                  y: Math.random()*initSpeed - initSpeed/2});
+  this.myworld.setangularvelocity(body, 0);
 };
 
 // ----------------------------------------------------------------------------------------
