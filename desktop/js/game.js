@@ -86,6 +86,7 @@ function Game(params) {
   this.PLAYER_WIDTH = 50 / SCALE;
   this.PLAYER_HEIGHT = 100 / SCALE;
   this.BALL_RADIUS = this.PLAYER_HEIGHT/8;
+  this.GOAL_SIZE = this.BALL_RADIUS * 6;
 }
 
 // --------------------------------------------------------------------------------------------
@@ -162,22 +163,28 @@ Game.prototype.init = function() {
                                   isstatic: true});
   var leftA = new RectangleEntity({
     x: 0, y: 0,
-    width: 1 / SCALE, height: this.map_height / 2 - this.BALL_RADIUS * 6,
+    width: 1 / SCALE, height: this.map_height / 2 - this.GOAL_SIZE / 2,
     isstatic: true});
 
   var leftB = new RectangleEntity({
-    x: 0, y: this.map_height / 2 + this.BALL_RADIUS * 4,
-    width: 1 / SCALE, height: this.map_height / 2 - this.BALL_RADIUS * 6,
+    x: 0,
+    y: this.map_height / 2 + this.BALL_RADIUS * 4,
+    width: 1 / SCALE,
+    height: this.map_height / 2 - this.GOAL_SIZE / 2,
     isstatic: true});
 
   var rightA = new RectangleEntity({
-    x: this.map_width, y: 0,
-    width: 1 / SCALE, height: this.map_height / 2 - this.BALL_RADIUS * 6,
+    x: this.map_width,
+    y: 0,
+    width: 1 / SCALE,
+    height: this.map_height / 2 - this.GOAL_SIZE / 2,
     isstatic: true});
 
   var rightB = new RectangleEntity({
-    x: this.map_width, y: this.map_height / 2 + this.BALL_RADIUS * 4,
-    width: 1 / SCALE, height: this.map_height / 2 - this.BALL_RADIUS * 6,
+    x: this.map_width,
+    y: this.map_height / 2 + this.BALL_RADIUS * 4,
+    width: 1 / SCALE,
+    height: this.map_height / 2 - this.GOAL_SIZE / 2,
     isstatic: true});
 
   bottom.createbody(this.myworld);
@@ -554,6 +561,13 @@ Game.prototype.update = function() {
       this.entities[e].update(elapsedMs, this.myworld);
     }
 
+    // Check game over
+    if (ballPos.x < 0 || ballPos.x > this.map_width) {
+      console.log('GAME OVER');
+      this.myworld.setposition(this.ball.body, {x: this.map_width/2, y: this.map_height/2});
+      this.myworld.setvelocity(this.ball.body, {x: 0, y:0});
+      this.myworld.setangularvelocity(this.ball.body, 0);
+    }
   } // if not pause
 
   // request next update
