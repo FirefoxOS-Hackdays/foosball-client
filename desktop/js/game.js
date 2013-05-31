@@ -17,9 +17,6 @@ function Game(params) {
   // Total drawable entities
   this.entities = [];
 
-  // Subgroups of entities, included in [entities]
-  this.usercontrolled = [];
-
   // world dimensions (in world units)
   // - recalculated after loading maps
   this.map_width = 800 / SCALE;
@@ -38,7 +35,6 @@ function Game(params) {
   this.mousePVec = undefined;
   this.isMouseDown = undefined;
   this.selectedEntity = undefined;
-  this.controllingEntity = 0; // selected entity if it's one of the user controlled ones
 
   // ground layer, not included in [entities]
   // this.ground_tiles = [];
@@ -60,10 +56,6 @@ function Game(params) {
 
   // Toggle debug view of underlying physics engine objects
   this.displayDebugInfo = false;
-
-  // ground layers
-  this.layers = [];
-  // this.layers.push( this.ground_tiles );
 
   // reference to the drawing context
   this.ctx = this.canvas.getContext("2d");
@@ -129,7 +121,7 @@ Game.prototype.init = function() {
   this.player2 = new RectangleEntity({
     id: 101,
     x: this.map_width - (1*this.map_width)/5,
-    y: this.map_height/2 - this.PLAYER_HEIGHT/2,
+    y: this.map_height/2  - this.PLAYER_HEIGHT/2,
     width: this.PLAYER_WIDTH,
     height: this.PLAYER_HEIGHT,
     angle: 0,
@@ -138,7 +130,6 @@ Game.prototype.init = function() {
     isstatic: false,
     weight: 1
   });
-
 
   this.entities.push( this.player1 );
   this.entities.push( this.player2 );
@@ -205,12 +196,12 @@ Game.prototype.init = function() {
     height: verticalSegmentSize,
     isstatic: true});
 
-  bottom.createbody(this.myworld);
-  top.createbody(this.myworld);
-  leftA.createbody(this.myworld);
-  leftB.createbody(this.myworld);
-  rightA.createbody(this.myworld);
-  rightB.createbody(this.myworld);
+  this.entities.push(bottom);
+  this.entities.push(top);
+  this.entities.push(leftA);
+  this.entities.push(leftB);
+  this.entities.push(rightA);
+  this.entities.push(rightB);
 
   var disableVerticalMovement = function (body) {
     var jointDef = new Box2D.Dynamics.Joints.b2PrismaticJointDef(
@@ -301,18 +292,6 @@ Game.prototype.registerListeners = function() {
 
   // register mouse and keyboard listeners
 
-  // $(document).mousemove( (function(e) {
-  //   if(e.originalEvent.touches && e.originalEvent.touches.length) {
-  //     e = e.originalEvent.touches[0];
-  //   } else if(e.originalEvent.changedTouches && e.originalEvent.changedTouches.length) {
-  //     e = e.originalEvent.changedTouches[0];
-  //   }
-  //   var canvasPosition = this.getElementPosition(this.canvas);
-
-  //   // remember current mouse position
-  //   this.mouseX = (e.clientX - canvasPosition.x);
-  //   this.mouseY = (e.clientY - canvasPosition.y);
-  // }).bind(this) );
   this.canvas.onmousemove = (function(e) {
     // remember current mouse position
     var canvasPosition = this.getElementPosition(this.canvas);
@@ -330,77 +309,6 @@ Game.prototype.registerListeners = function() {
     // this.mouseX = undefined;
     // this.mouseY = undefined;
   }).bind(this) );
-
-  // equivalent touch listeners
-  this.canvas.ontouchstart = (function(e) {
-    //this.isMouseDown = true;
-
-    // if( e.preventDefault ) e.preventDefault();
-    if( e.originalEvent ) {
-      e = e.originalEvent;
-    }
-
-    if( e.touches && e.touches.length) {
-      e = e.touches[0];
-    } else if( e.changedTouches && e.changedTouches.length) {
-      e = e.changedTouches[0];
-    }
-
-    // remember current mouse position
-    var canvasPosition = this.getElementPosition(this.canvas);
-    this.mouseX = (e.clientX - canvasPosition.x);
-    this.mouseY = (e.clientY - canvasPosition.y);
-    return false; // swallow event if it touches an entity TODO: "if!!"
-  }).bind(this);
-
-  this.canvas.ontouchmove = (function(e) {
-    // if( e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length ) {
-    //   e = e.originalEvent.touches[0];
-    // } else if( e.originalEvent && e.originalEvent.changedTouches && e.originalEvent.changedTouches.length ) {
-    //   e = e.originalEvent.changedTouches[0];
-    // }
-    // // remember current mouse position
-    // var canvasPosition = this.getElementPosition(this.canvas);
-    // this.mouseX = (e.clientX - canvasPosition.x);
-    // this.mouseY = (e.clientY - canvasPosition.y);
-  }).bind(this);
-
-
-  this.canvas.ontouchend = (function(e) {
-
-    // if( e.preventDefault ) e.preventDefault();
-    // this.isMouseDown = false;
-    // this.mouseX = undefined;
-    // this.mouseY = undefined;
-    // return false;
-  }).bind(this);
-
-  this.canvas.ontouchcancel = (function(e) {
-    // this.isMouseDown = false;
-    // this.mouseX = undefined;
-    // this.mouseY = undefined;
-    // return false;
-  }).bind(this);
-
-
-  $(document).bind("mousewheel", (function(e) {
-    // cope with browser diferences in the way wheel delta is returned
-    e = window.event;
-
-    var wheelDelta = e.detail ? e.detail * -1 : e.wheelDelta / 40;
-
-    var wheelDeltaX = 0;
-    if( e.detail.wheelDeltaX ) wheelDeltaX = e.detail.wheelDeltaX * -1;
-    else if( e.wheelDeltaX ) wheelDeltaX = e.wheelDeltaX / 40;
-
-    var wheelDeltaY = 0;
-    if( e.detail.wheelDeltaY ) wheelDeltaY = e.detail.wheelDeltaY * -1;
-    else if( e.wheelDeltaY ) wheelDeltaY = e.wheelDeltaY / 40;
-
-    statustext.innerHTML = "wheel " + wheelDeltaX + "/" + wheelDeltaY;
-
-  }).bind(this));
-
 
   // register keypresses
   $(document).keydown(function (e) {
@@ -446,20 +354,20 @@ Game.prototype.registerListeners = function() {
         break;
     }
     if (pressedBall && !_this.pressStartedBall) {
-        _this.pressStartedBall = new Date().getTime();
-        return false;
+      _this.pressStartedBall = new Date().getTime();
+      return false;
     }
     if (pressedPlayer1 && !_this.pressStartedPlayer1) {
-        _this.pressStartedPlayer1 = new Date().getTime();
-        return false;
+      _this.pressStartedPlayer1 = new Date().getTime();
+      return false;
     }
     if (pressedPlayer2 && !_this.pressStartedPlayer2) {
-        _this.pressStartedPlayer2 = new Date().getTime();
-        return false;
+      _this.pressStartedPlayer2 = new Date().getTime();
+      return false;
     }
     if (pressedSpace) {
       _this.newBall();
-        return false;
+      return false;
     }
     return true;
   });
@@ -539,9 +447,17 @@ Game.prototype.newBall = function (reset) {
   var initSpeed = 1000;
   if (reset) {
     this.myworld.setposition(body, {x: this.map_width/2, y: this.map_height/2});
+    // this.myworld.setposition(this.player1.body,
+    //   { x: (1*this.map_width)/5 - this.PLAYER_WIDTH,
+    //     y: this.map_height/2 });
+    // this.myworld.setposition(this.player2.body,
+    //   { x: this.map_width - (1*this.map_width)/5,
+    //     y: this.map_height/2 });
+    this.myworld.setvelocity(body, {x: 0, y:0});
+  } else {
+    this.myworld.setvelocity(body, {x: Math.random()*initSpeed - initSpeed/2,
+                                    y: Math.random()*initSpeed - initSpeed/2});
   }
-  this.myworld.setvelocity(body, {x: Math.random()*initSpeed - initSpeed/2,
-                                  y: Math.random()*initSpeed - initSpeed/2});
   this.myworld.setangularvelocity(body, 0);
 };
 
@@ -620,18 +536,21 @@ Game.prototype.update = function() {
     var ballImpulseX = 0;
     var FALL_GRAVITY = 0.01;
 
-    if (ballPos.x < this.map_width/2 && ballPos.x > this.BALL_RADIUS) {
+    // it's in the middle left part of the screen
+    if (ballPos.x < this.map_width/2) {
       ballImpulseX = -FALL_GRAVITY;
-    } else if (ballPos.x > this.map_width/2 &&
-      ballPos.x < this.map_width - this.BALL_RADIUS) {
+    } else if (ballPos.x > this.map_width/2) {
       ballImpulseX = FALL_GRAVITY;
     }
     var ballImpulseY = 0;
+
+    // it's in the middle right part of the screen
     if (ballPos.y < this.map_height/2 - this.BALL_RADIUS) {
       ballImpulseY = FALL_GRAVITY;
     } else if (ballPos.y > this.map_height/2 + this.BALL_RADIUS) {
       ballImpulseY = -FALL_GRAVITY;
     }
+
     if (ballImpulseX || ballImpulseY) {
       this.ball.body.ApplyImpulse(
         new Box2D.Common.Math.b2Vec2(ballImpulseX, ballImpulseY),
@@ -662,9 +581,7 @@ Game.prototype.update = function() {
     // Check game over
     if (ballPos.x < 0 || ballPos.x > this.map_width) {
       console.log('GAME OVER');
-      this.myworld.setposition(this.ball.body, {x: this.map_width/2, y: this.map_height/2});
-      this.myworld.setvelocity(this.ball.body, {x: 0, y:0});
-      this.myworld.setangularvelocity(this.ball.body, 0);
+      this.newBall(true);
     }
   } // if not pause
 
@@ -686,11 +603,6 @@ Game.prototype.getBodyAtMouse = function() {
     var ref = this.myworld.getreffrombody(selected);
     if( ref ) {
       this.selectedEntity = ref;
-      for(var e in this.usercontrolled ) {
-        if( this.usercontrolled[e] == this.selectedEntity ) {
-          this.controllingEntity = e;
-        }
-      }
     }
   }
 
@@ -781,103 +693,16 @@ Game.prototype.render = function() {
   // draw background tiles ("ground" layer)
   //
   if( !this.displayDebugInfo ) {
-
     this.player1.draw({ ctx : this.ctx });
     this.player2.draw({ ctx : this.ctx });
     this.ball.draw({ ctx : this.ctx });
-
-    for(var layerid in this.layers) {
-      var layer = this.layers[layerid];
-      var initialrow = Math.max( 0,
-                         Math.floor((this.minimum_world_y - MARGIN_VERT) /
-                                    (layer.tile_sizey / SCALE)) );
-      var lastrow = Math.min( layer.height-1,
-                         Math.floor((this.maximum_world_y + MARGIN_VERT) /
-                                     (layer.tile_sizey / SCALE)) + 1 );
-      var initialcol = Math.max( 0,
-                         Math.floor((this.minimum_world_x - MARGIN_HORIZ) /
-                                     (layer.tile_sizex / SCALE)) );
-      var lastcol = Math.min( layer.width-1,
-                         Math.floor((this.maximum_world_x + MARGIN_HORIZ) /
-                                     (layer.tile_sizex / SCALE)) + 1 );
-      var i, j, gid, r;
-      for(i=initialrow; i<=lastrow; i++) {
-        for(j=initialcol; j<=lastcol; j++) {
-          gid = layer.data[i*layer.width + j];
-          r = this.getSprite(gid);
-          this.ctx.drawImage( r.image, r.sprite.x, r.sprite.y,
-                              r.sprite.w, r.sprite.h,
-                              j*layer.tile_sizex, i*layer.tile_sizey,
-                              r.sprite.w, r.sprite.h );
-        }
-      }
-    }
   }
-
-  // Find all elements that are visible
-  // 
-  // find all entities that are visible, based on their physical bodies' location
-  var visible = this.myworld.bodiesatrect({
-    x: this.minimum_world_x-MARGIN_HORIZ,
-    y: this.minimum_world_y-MARGIN_VERT,
-    width: this.maximum_world_x+MARGIN_HORIZ,
-    height: this.maximum_world_y+MARGIN_VERT,
-    selectstatics: true,
-    returnrefs: true});
-
-  // TODO: move this to separate array... or something
-  // add the 'bodyless' sprites as they will have not appeared in the above query
-  //
-  for(var entityNumber in this.entities) {
-    var entity = this.entities[entityNumber];
-    if( entity.bodyless ) {
-      visible.push(entity);
-    }
-  }
-
-  // sort elements based on y coordinate, to make elements below appear on top of previous, to get Zelda-like fake perspective
-  // TODO: utilizar un arbol o algo que ya esté ordenado durante la insercion
-  //
-  visible.sort((function(a, b) {
-
-    var bb1_y = a.y - a.height/2;
-    var bb2_y = b.y - b.height/2;
-    if( a.body ) {
-      var bb = this.myworld.getboundingbox(a.body);
-      bb1_y = bb.y0;
-    }
-    if( b.body ) {
-      var bb = this.myworld.getboundingbox(b.body);
-      bb2_y = bb.y0;
-    }
-
-    var val1 = bb1_y - bb2_y;
-    if( val1 < 0 ) return -1;
-    else if( val1 > 0 ) return 1;
-
-    var bb1_x = a.x - a.width/2;
-    var bb2_x = b.x - b.width/2;
-    if( a.body ) {
-      var bb = this.myworld.getboundingbox(a.body);
-      bb1_x = bb.x0;
-    }
-    if( b.body ) {
-      var bb = this.myworld.getboundingbox(b.body);
-      bb2_x = bb.x0;
-    }
-
-    var val2 = bb1_x - bb2_x;
-    if( val2 < 0 ) return -1;
-    else if( val2 > 0 ) return 1;
-
-    return 0; // equal
-  }).bind(this));
 
   // Finally, draw all those entities, in order
   //
   var parametros = { ctx: this.ctx, isSelected: false };
-  for(var i in visible) {
-    entity = visible[i];
+  for(var i in this.entities) {
+    entity = this.entities[i];
     parametros.isSelected = (this.selectedEntity == entity);
     if( !this.displayDebugInfo ) entity.draw(parametros);
   }
@@ -945,18 +770,6 @@ Game.prototype.getElementPosition = function(element) {
 };
 
 // -------------------------------------------------------------------------------
-
-Game.prototype.toggleSelected = function() {
-
-  this.usercontrolled[this.controllingEntity].movement = MOVE_NONE;
-  this.controllingEntity = (this.controllingEntity+1)%this.usercontrolled.length;
-};
-
-
-Game.prototype.toggleAction = function() {
-  if( this.action === this.ACTION_PULL ) this.action = this.ACTION_BOMB;
-  else this.action = this.ACTION_PULL;
-};
 
 Game.prototype.togglePause = function() {
   this.pause = !this.pause;
