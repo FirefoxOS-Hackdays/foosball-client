@@ -27,7 +27,7 @@ var WsConnector = new function () {
       the_game.events.push({
         type: 'move',
         player: message.playerNum + 1,
-        direction: 1,
+        direction: message.speed > 0 ? -1 : 1,
         force: message.speed
       });
     }
