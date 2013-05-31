@@ -123,7 +123,7 @@ Game.prototype.init = function() {
     bodyless: false,
     doesntcollide: false,
     isstatic: false,
-    weight: 2
+    weight: 1
   });
 
   this.player2 = new RectangleEntity({
@@ -136,7 +136,7 @@ Game.prototype.init = function() {
     bodyless: false,
     doesntcollide: false,
     isstatic: false,
-    weight: 2
+    weight: 1
   });
 
 
@@ -231,6 +231,51 @@ Game.prototype.init = function() {
   disableVerticalMovement(this.player1.body);
   disableVerticalMovement(this.player2.body);
 
+
+  var b2Listener = Box2D.Dynamics.b2ContactListener;
+
+  //Add listeners for contact
+  var listener = new b2Listener();
+
+  listener.BeginContact = function(contact) {
+    //console.log(contact.GetFixtureA().GetBody().GetUserData());
+  };
+
+  listener.EndContact = function(contact) {
+    // console.log(contact.GetFixtureA().GetBody().GetUserData());
+  };
+
+  listener.PostSolve = function(contact, impulse) {
+    var angle;
+    var bodyA = contact.GetFixtureA().GetBody().GetUserData();
+    var bodyB = contact.GetFixtureB().GetBody().GetUserData();
+    if ( bodyA === _this.player1 && bodyB === _this.ball ||
+         bodyA === _this.ball && bodyB === _this.player1) {
+      console.log('pelota choca player1');
+      angle = { x: 1, y: Math.random() };
+    } else if ( bodyA === _this.player2 && bodyB === _this.ball ||
+         bodyA === _this.ball && bodyB === _this.player2) {
+      console.log('pelota choca player2');
+      angle = { x: -1, y: Math.random() };
+    }
+
+    if (angle) {
+      impulse = impulse.normalImpulses[0];
+      // if (impulse < 0.2) return; //threshold ignore small impacts
+      _this.events.push({
+        type: 'ball',
+        force: 100 * impulse,
+        angle: angle
+      });
+    }
+  };
+
+  listener.PreSolve = function(contact, oldManifold) {
+      // PreSolve
+  };
+
+  this.myworld.world.SetContactListener(listener);
+
   //setup debug draw
   this.myworld.setdebug({ canvas:this.canvas });
 
@@ -243,7 +288,7 @@ Game.prototype.init = function() {
   setTimeout(this.boundupdate, this.updateDelay);
 
   // start by throwing new ball
-  this.newBall();
+  this.newBall(true);
 };
 
 // ----------------------------------------------------------------------------------------------
@@ -489,10 +534,12 @@ Game.prototype.registerListeners = function() {
 // ------------------------
 // Throw new ball
 // ------------------------
-Game.prototype.newBall = function () {
+Game.prototype.newBall = function (reset) {
   var body = this.ball.body;
   var initSpeed = 1000;
-  this.myworld.setposition(body, {x: this.map_width/2, y: this.map_height/2});
+  if (reset) {
+    this.myworld.setposition(body, {x: this.map_width/2, y: this.map_height/2});
+  }
   this.myworld.setvelocity(body, {x: Math.random()*initSpeed - initSpeed/2,
                                   y: Math.random()*initSpeed - initSpeed/2});
   this.myworld.setangularvelocity(body, 0);
@@ -571,18 +618,20 @@ Game.prototype.update = function() {
     // Make ball 'fall' to center
     var ballPos = this.ball.body.GetPosition();
     var ballImpulseX = 0;
-    if (ballPos.x < this.map_width/2 && ballPos.x > this.BALL_RADIUS*2) {
-      ballImpulseX = -0.1;
+    var FALL_GRAVITY = 0.01;
+
+    if (ballPos.x < this.map_width/2 && ballPos.x > this.BALL_RADIUS) {
+      ballImpulseX = -FALL_GRAVITY;
     } else if (ballPos.x > this.map_width/2 &&
-      ballPos.x < this.map_width - this.BALL_RADIUS*2) {
-      ballImpulseX = 0.1;
-    } 
+      ballPos.x < this.map_width - this.BALL_RADIUS) {
+      ballImpulseX = FALL_GRAVITY;
+    }
     var ballImpulseY = 0;
-    if (ballPos.y < this.map_height/2 - this.BALL_RADIUS*2) {
-      ballImpulseY = 0.1;
-    } else if (ballPos.y > this.map_height/2 + this.BALL_RADIUS*2) {
-      ballImpulseY = -0.1;
-    } 
+    if (ballPos.y < this.map_height/2 - this.BALL_RADIUS) {
+      ballImpulseY = FALL_GRAVITY;
+    } else if (ballPos.y > this.map_height/2 + this.BALL_RADIUS) {
+      ballImpulseY = -FALL_GRAVITY;
+    }
     if (ballImpulseX || ballImpulseY) {
       this.ball.body.ApplyImpulse(
         new Box2D.Common.Math.b2Vec2(ballImpulseX, ballImpulseY),
