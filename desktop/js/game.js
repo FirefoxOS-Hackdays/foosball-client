@@ -75,8 +75,17 @@ function Game(params) {
   this.myworld = undefined;
 
   // current intensity (from user pressing key)
-  this.pressStarted = 0;
-  this.direction = 0;
+  this.pressStartedBall = 0;
+  this.pressStartedPlayer1 = 0;
+  this.pressStartedPlayer2 = 0;
+  this.player1Direction = 0;
+  this.player2Direction = 0;
+  this.ballDirection = 0;
+
+  // sizes
+  this.PLAYER_WIDTH = 50 / SCALE;
+  this.PLAYER_HEIGHT = 100 / SCALE;
+  this.BALL_RADIUS = this.PLAYER_HEIGHT/8;
 }
 
 // --------------------------------------------------------------------------------------------
@@ -100,15 +109,12 @@ Game.prototype.init = function() {
 
   // create objects
 
-  var playerWidth = 50 / SCALE;
-  var playerHeight = 100 / SCALE;
-
   this.player1 = new RectangleEntity({
     id: 100,
-    x: (1*this.map_width)/5 - playerWidth,
-    y: this.map_height/2 - playerHeight/2,
-    width: playerWidth,
-    height: playerHeight,
+    x: (1*this.map_width)/5 - this.PLAYER_WIDTH,
+    y: this.map_height/2 - this.PLAYER_HEIGHT/2,
+    width: this.PLAYER_WIDTH,
+    height: this.PLAYER_HEIGHT,
     angle: 0,
     bodyless: false,
     doesntcollide: false,
@@ -119,9 +125,9 @@ Game.prototype.init = function() {
   this.player2 = new RectangleEntity({
     id: 101,
     x: this.map_width - (1*this.map_width)/5,
-    y: this.map_height/2 - playerHeight/2,
-    width: playerWidth,
-    height: playerHeight,
+    y: this.map_height/2 - this.PLAYER_HEIGHT/2,
+    width: this.PLAYER_WIDTH,
+    height: this.PLAYER_HEIGHT,
     angle: 0,
     bodyless: false,
     doesntcollide: false,
@@ -133,12 +139,11 @@ Game.prototype.init = function() {
   this.entities.push( this.player1 );
   this.entities.push( this.player2 );
 
-  var ballRadius = playerHeight/8;
   this.ball = new CircleEntity({
     id: 200,
     x: this.map_width/2,
     y: this.map_height/2,
-    radius: ballRadius,
+    radius: this.BALL_RADIUS,
     angle: 0,
     bodyless: false,
     isstatic: false,
@@ -312,103 +317,115 @@ Game.prototype.registerListeners = function() {
   // register keypresses
   $(document).keydown(function (e) {
     var entity = this.player1;
-    var pressed = false;
+    var pressedBall = false;
+    var pressedPlayer1 = false;
+    var pressedPlayer2 = false;
     switch(e.keyCode) {
       case 37: /* left */
-        _this.direction |= MOVE_LEFT;
-        pressed = true;
+        _this.ballDirection |= MOVE_LEFT;
+        pressedBall = true;
         break;
       case 38: /* up */
-        _this.direction |= MOVE_UP;
-        pressed = true;
+        _this.ballDirection |= MOVE_UP;
+        pressedBall = true;
         break;
       case 39: /* right */
-        _this.direction |= MOVE_RIGHT;
-        pressed = true;
+        _this.ballDirection |= MOVE_RIGHT;
+        pressedBall = true;
         break;
       case 40: /* down */
-        _this.direction |= MOVE_DOWN;
-        pressed = true;
+        _this.ballDirection |= MOVE_DOWN;
+        pressedBall = true;
         break;
       case 65: // a
-        console.log('a');
-        _this.a = -1;
-        pressed = true;
+        _this.player1Direction = -1;
+        pressedPlayer1 = true;
         break;
       case 83: // s
-        _this.b = -1;
-        pressed = true;
+        _this.player2Direction = -1;
+        pressedPlayer2 = true;
         break;
       case 90: // z
-        _this.a = 1;
-        pressed = true;
+        _this.player1Direction = 1;
+        pressedPlayer1 = true;
         break;
       case 88: // x
-        _this.b = 1;
-        pressed = true;
+        _this.player2Direction = 1;
+        pressedPlayer2 = true;
         break;
     }
-    if (pressed) {
-      if (!_this.pressStarted) {
-        _this.pressStarted = new Date().getTime();
-      }
-      return false;
+    if (pressedBall && !_this.pressStartedBall) {
+        _this.pressStartedBall = new Date().getTime();
     }
-    return true;
+    if (pressedPlayer1 && !_this.pressStartedPlayer1) {
+        _this.pressStartedPlayer1 = new Date().getTime();
+    }
+    if (pressedPlayer2 && !_this.pressStartedPlayer2) {
+        _this.pressStartedPlayer2 = new Date().getTime();
+    }
+    return !pressedBall && !pressedPlayer1 && !pressedPlayer2;
   });
+
+  // direction = 1, -1
+  // force = number
+  var movePlayer = function (body, direction, force) {
+    force = 10 + force/4;
+    var pos = _this.player1.body.GetPosition();
+    body.ApplyImpulse(
+      new Box2D.Common.Math.b2Vec2(0, force * direction),
+      new Box2D.Common.Math.b2Vec2(0, 0)); // todo move this to World.js
+  };
 
   $(document).keyup(function (e) {
     var entity = this.player1;
-    var pressed = false;
+    var pressedBall = false;
+    var pressedPlayer1 = false;
+    var pressedPlayer2 = false;
     switch(e.keyCode) {
       case 37: /* left */
       case 38: /* up */
       case 39: /* right */
       case 40: /* down */
       case 32: /* space */
+        pressedBall = true;
+        break;
       case 65: // a
-      case 83: // s
       case 90: // z
+        pressedPlayer1 = true;
+        break;
+      case 83: // s
       case 88: // x
-      pressed = true;
-      break;
+        pressedPlayer2 = true;
+        break;
     }
-    if (pressed) {
-
-      var elapsed = new Date().getTime() - _this.pressStarted;
+    if (pressedBall) {
+      var elapsed = new Date().getTime() - _this.pressStartedBall;
       var force = elapsed;
-      if (_this.direction) {
-        var dirX = (_this.direction & MOVE_LEFT) ? -1 :
-                     ((_this.direction & MOVE_RIGHT) ? 1 : 0);
-        var dirY = (_this.direction & MOVE_UP) ? -1 :
-                     ((_this.direction & MOVE_DOWN) ? 1 : 0);
+      if (_this.ballDirection) {
+        var dirX = (_this.ballDirection & MOVE_LEFT) ? -1 :
+                     ((_this.ballDirection & MOVE_RIGHT) ? 1 : 0);
+        var dirY = (_this.ballDirection & MOVE_UP) ? -1 :
+                     ((_this.ballDirection & MOVE_DOWN) ? 1 : 0);
         console.log(elapsed, dirX, dirY);
         _this.ball.body.ApplyImpulse(
           new Box2D.Common.Math.b2Vec2(force * dirX, force * dirY),
           new Box2D.Common.Math.b2Vec2(0, 0)); // todo move this to World.js
-      } else {
-        force = 10 + force/4;
-        if (_this.a) {
-          var pos = _this.player1.body.GetPosition();
-          _this.player1.body.ApplyImpulse(
-            new Box2D.Common.Math.b2Vec2(0, force * _this.a),
-            new Box2D.Common.Math.b2Vec2(0, 0)); // todo move this to World.js
-        } else if (_this.b) {
-          var pos = _this.player2.body.GetPosition();
-          _this.player2.body.ApplyImpulse(
-            new Box2D.Common.Math.b2Vec2(0, force * _this.b),
-            new Box2D.Common.Math.b2Vec2(0, 0)); // todo move this to World.js
-        }
-        _this.pressStarted = null;
-        _this.direction = 0;
-        _this.a = 0;
-        _this.b = 0;
       }
-
-      // TODO: trigger impulse
-      return false;
+      _this.pressStartedBall = 0;
+      _this.ballDirection = 0;
     }
-    return true;
+    if (pressedPlayer1) {
+      movePlayer(_this.player1.body, _this.player1Direction,
+                 new Date().getTime() - _this.pressStartedPlayer1);
+      _this.pressStartedPlayer1 = 0;
+    }
+    if (pressedPlayer2) {
+      movePlayer(_this.player2.body, _this.player1Direction,
+                 new Date().getTime() - _this.pressStartedPlayer2);
+      _this.pressStartedPlayer2 = 0;
+    }
+
+    return !pressedBall && !pressedPlayer1 && !pressedPlayer2;
   });
 };
 
@@ -438,7 +455,7 @@ Game.prototype.update = function() {
 
     // process user interactions
     //
-   if(this.isMouseDown) {
+    if(this.isMouseDown) {
       if(!this.myworld.isjoinedtomouse()) {
         if( this.action == this.ACTION_PULL ) {
            var foundbody = this.getBodyAtMouse();
@@ -451,6 +468,27 @@ Game.prototype.update = function() {
             }
           }
        }
+    }
+
+    // Make ball 'fall' to center
+    var ballPos = this.ball.body.GetPosition();
+    var ballImpulseX = 0;
+    if (ballPos.x < this.map_width/2 && ballPos.x > this.BALL_RADIUS*2) {
+      ballImpulseX = -0.1;
+    } else if (ballPos.x > this.map_width/2 &&
+      ballPos.x < this.map_width - this.BALL_RADIUS*2) {
+      ballImpulseX = 0.1;
+    } 
+    var ballImpulseY = 0;
+    if (ballPos.y < this.map_height/2 - this.BALL_RADIUS*2) {
+      ballImpulseY = 0.1;
+    } else if (ballPos.y > this.map_height/2 + this.BALL_RADIUS*2) {
+      ballImpulseY = -0.1;
+    } 
+    if (ballImpulseX || ballImpulseY) {
+      this.ball.body.ApplyImpulse(
+        new Box2D.Common.Math.b2Vec2(ballImpulseX, ballImpulseY),
+        new Box2D.Common.Math.b2Vec2(0, 0)); // todo move this to World.js
     }
 
     if( this.myworld.isjoinedtomouse() ) {

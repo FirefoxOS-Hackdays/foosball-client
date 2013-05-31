@@ -198,6 +198,9 @@ World.prototype.newCircleBody = function (params) {
 		else bodyDef.type = b2Body.b2_dynamicBody;
 
 		fixDef.shape = new b2CircleShape(params.radius);
+		if( params.bullet ) {
+			bodyDef.bullet = true;
+		}
 
 		// prevent this entity from colliding (but still affects forces)
 		if( params.doesntcollide ) {
