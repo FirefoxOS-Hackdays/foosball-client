@@ -87,6 +87,9 @@ function Game(params) {
   this.PLAYER_HEIGHT = 100 / SCALE;
   this.BALL_RADIUS = this.PLAYER_HEIGHT/8;
   this.GOAL_SIZE = this.BALL_RADIUS * 10;
+
+  // events received from players
+  this.events = [];
 }
 
 // --------------------------------------------------------------------------------------------
@@ -356,7 +359,6 @@ Game.prototype.registerListeners = function() {
 
   // register keypresses
   $(document).keydown(function (e) {
-    var entity = this.player1;
     var pressedBall = false;
     var pressedPlayer1 = false;
     var pressedPlayer2 = false;
@@ -400,28 +402,22 @@ Game.prototype.registerListeners = function() {
     }
     if (pressedBall && !_this.pressStartedBall) {
         _this.pressStartedBall = new Date().getTime();
+        return false;
     }
     if (pressedPlayer1 && !_this.pressStartedPlayer1) {
         _this.pressStartedPlayer1 = new Date().getTime();
+        return false;
     }
     if (pressedPlayer2 && !_this.pressStartedPlayer2) {
         _this.pressStartedPlayer2 = new Date().getTime();
+        return false;
     }
     if (pressedSpace) {
       _this.newBall();
+        return false;
     }
-    return !pressedBall && !pressedPlayer1 && !pressedPlayer2 && !pressedSpace;
+    return true;
   });
-
-  // direction = 1, -1
-  // force = number
-  var movePlayer = function (body, direction, force) {
-    force = 10 + force/4;
-    var pos = _this.player1.body.GetPosition();
-    body.ApplyImpulse(
-      new Box2D.Common.Math.b2Vec2(0, force * direction),
-      new Box2D.Common.Math.b2Vec2(0, 0)); // todo move this to World.js
-  };
 
   $(document).keyup(function (e) {
     var entity = this.player1;
@@ -450,34 +446,43 @@ Game.prototype.registerListeners = function() {
         console.log('space');
         break;
     }
-    if (pressedBall) {
-      var elapsed = new Date().getTime() - _this.pressStartedBall;
-      var force = elapsed;
-      if (_this.ballDirection) {
-        var dirX = (_this.ballDirection & MOVE_LEFT) ? -1 :
-                     ((_this.ballDirection & MOVE_RIGHT) ? 1 : 0);
-        var dirY = (_this.ballDirection & MOVE_UP) ? -1 :
-                     ((_this.ballDirection & MOVE_DOWN) ? 1 : 0);
-        console.log(elapsed, dirX, dirY);
-        _this.ball.body.ApplyImpulse(
-          new Box2D.Common.Math.b2Vec2(force * dirX, force * dirY),
-          new Box2D.Common.Math.b2Vec2(0, 0)); // todo move this to World.js
-      }
+
+    // Simulate the events that the phones will send
+
+    if (pressedBall && _this.ballDirection) {
+      _this.events.push({
+        type: 'ball',
+        force: new Date().getTime() - _this.pressStartedBall,
+        angle: { x: (_this.ballDirection & MOVE_LEFT) ? -1 :
+                   ((_this.ballDirection & MOVE_RIGHT) ? 1 : 0),
+                 y: (_this.ballDirection & MOVE_UP) ? -1 :
+                   ((_this.ballDirection & MOVE_DOWN) ? 1 : 0) }
+      });
       _this.pressStartedBall = 0;
       _this.ballDirection = 0;
+      return false;
     }
+
     if (pressedPlayer1) {
-      movePlayer(_this.player1.body, _this.player1Direction,
-                 new Date().getTime() - _this.pressStartedPlayer1);
+      _this.events.push({
+        type: 'move',
+        player: 1,
+        direction: _this.player1Direction,
+        force: new Date().getTime() - _this.pressStartedPlayer1});
       _this.pressStartedPlayer1 = 0;
+      return false;
     }
+
     if (pressedPlayer2) {
-      movePlayer(_this.player2.body, _this.player2Direction,
-                 new Date().getTime() - _this.pressStartedPlayer2);
+      _this.events.push({
+        type: 'move',
+        player: 2,
+        direction: _this.player2Direction,
+        force: new Date().getTime() - _this.pressStartedPlayer2});
       _this.pressStartedPlayer2 = 0;
+      return false;
     }
- 
-    return !pressedBall && !pressedPlayer1 && !pressedPlayer2 && !pressedSpace;
+    return true;
   });
 };
 
@@ -493,13 +498,26 @@ Game.prototype.newBall = function () {
   this.myworld.setangularvelocity(body, 0);
 };
 
+// ------------------
+// Movement of paddle
+// ------------------
+// direction = 1, -1
+// force = number
+Game.prototype.movePlayer = function (body, direction, force) {
+  force = 10 + force/4;
+  var pos = body.GetPosition();
+  body.ApplyImpulse(
+    new b2Vec2(0, force * direction),
+    new b2Vec2(0, 0)); // todo move this to World.js
+};
+
 // ----------------------------------------------------------------------------------------
 //
 // World update callback
 //
 // ----------------------------------------------------------------------------------------
 Game.prototype.update = function() {
-
+  var _this = this;
   // Calculate time elapsed since las update
   //
   var fps;
@@ -533,6 +551,22 @@ Game.prototype.update = function() {
           }
        }
     }
+
+    // Process events
+    this.events.forEach(function (e) {
+      if (e.type === 'ball') {
+        _this.ball.body.ApplyImpulse(
+          new b2Vec2(e.force * e.angle.x, e.force * e.angle.y),
+          new b2Vec2(0, 0)); // todo move impulse function to World.js
+      } else if (e.type === 'move') {
+        if (e.player === 1) {
+          _this.movePlayer(_this.player1.body, e.direction, e.force);
+        } else if (e.player === 2) {
+          _this.movePlayer(_this.player2.body, e.direction, e.force);
+        }
+      }
+    });
+    this.events = [];
 
     // Make ball 'fall' to center
     var ballPos = this.ball.body.GetPosition();
