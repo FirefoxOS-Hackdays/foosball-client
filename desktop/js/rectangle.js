@@ -21,6 +21,7 @@ function RectangleEntity(params) {
   this.weight = params.weight;
   this.bullet = params.bullet;
   this.doesntcollide = params.doesntcollide;
+  this.color = 'rgb(188,188,100)';
 }
 
 RectangleEntity.prototype = new Entity();
@@ -34,7 +35,7 @@ RectangleEntity.prototype.draw = function(params) {
   params.ctx.translate(this.x * SCALE, this.y * SCALE);
   params.ctx.rotate(this.angle);
   params.ctx.translate(-(this.x) * SCALE, -(this.y) * SCALE);
-  params.ctx.strokeStyle = 'rgb(188,188,100)';
+  params.ctx.strokeStyle = this.color;
   params.ctx.strokeRect((this.x-this.width/2) * SCALE,
                (this.y-this.height/2) * SCALE,
                this.width*SCALE,

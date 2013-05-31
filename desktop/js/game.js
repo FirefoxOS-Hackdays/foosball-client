@@ -115,7 +115,7 @@ Game.prototype.init = function() {
     bodyless: false,
     doesntcollide: false,
     isstatic: false,
-    weight: 1
+    weight: 2
   });
 
   this.player2 = new RectangleEntity({
@@ -128,8 +128,11 @@ Game.prototype.init = function() {
     bodyless: false,
     doesntcollide: false,
     isstatic: false,
-    weight: 1
+    weight: 2
   });
+
+  this.player1.color = 'rgb(255,0,0)';
+  this.player2.color = 'rgb(0,255,0)';
 
   this.entities.push( this.player1 );
   this.entities.push( this.player2 );
