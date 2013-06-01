@@ -497,6 +497,12 @@ Game.prototype.update = function() {
 
   if( !this.pause ) {
 
+    // remember where ball was
+    var ballPos = {
+      x: this.ball.body.GetPosition().x,
+      y: this.ball.body.GetPosition().y
+    };
+
     // Execute physics engine
     //
     this.myworld.step( elapsedMs );
@@ -535,7 +541,6 @@ Game.prototype.update = function() {
     this.events = [];
 
     // Make ball 'fall' to center
-    var ballPos = this.ball.body.GetPosition();
     var ballImpulseX = 0;
     var FALL_GRAVITY = 0.01;
 
@@ -581,8 +586,18 @@ Game.prototype.update = function() {
       this.entities[e].update(elapsedMs, this.myworld);
     }
 
+    // Check new ball position
+    var newBallPos = {
+      x: this.ball.body.GetPosition().x,
+      y: this.ball.body.GetPosition().y
+    };
+
+    // calculate how much it has 'rotated'
+    this.ball.simulated3Drotation.x += newBallPos.x - ballPos.x;
+    this.ball.simulated3Drotation.y += newBallPos.y - ballPos.y;
+
     // Check game over
-    if (ballPos.x < 0 || ballPos.x > this.map_width) {
+    if (newBallPos.x < 0 || newBallPos.x > this.map_width) {
       console.log('GAME OVER');
       this.newBall(true);
     }
